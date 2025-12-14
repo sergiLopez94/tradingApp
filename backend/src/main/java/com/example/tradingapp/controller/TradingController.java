@@ -1,0 +1,48 @@
+package com.example.tradingapp.controller;
+
+import com.example.tradingapp.data.TransactionRepository;
+import com.example.tradingapp.data.ClientRepository;
+import com.example.tradingapp.model.Transaction;
+import com.example.tradingapp.model.Client;
+import com.example.tradingapp.service.FileProcessingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173") // For frontend
+public class TradingController {
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private FileProcessingService fileProcessingService;
+
+    @GetMapping("/transactions/{clientId}")
+    public List<Transaction> getTransactions(@PathVariable String clientId) {
+        return transactionRepository.findByClientId(clientId);
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+        try {
+            String depot = fileProcessingService.processFile(file);
+            return ResponseEntity.ok("File processed successfully for depot: " + depot);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error processing file: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/client/{id}")
+    public Client getClient(@PathVariable String id) {
+        return clientRepository.findById(id).orElse(null);
+    }
+}
