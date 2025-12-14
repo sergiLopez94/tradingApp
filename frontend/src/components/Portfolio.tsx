@@ -5,6 +5,8 @@ interface Transaction {
   transactionId: string;
   date: string;
   asset: string;
+  isin: string;
+  assetType: string;
   quantity: number;
   unitPrice: number;
   totalValue: number;
@@ -15,6 +17,8 @@ interface Asset {
   quantity: number;
   unitPrice: number;
   totalValue: number;
+  isin: string;
+  assetType: string;
 }
 
 const Portfolio = () => {
@@ -38,6 +42,8 @@ const Portfolio = () => {
           quantity: data.quantity,
           unitPrice: data.unitPrice,
           totalValue: data.totalValue,
+          isin: data.isin || '',
+          assetType: data.assetType || 'Security',
         }));
         setAssets(assetList);
         setPortfolioValue(assetList.reduce((sum, asset) => sum + asset.totalValue, 0));
@@ -67,6 +73,12 @@ const Portfolio = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Security
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ISIN
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Quantity
                     </th>
@@ -86,6 +98,14 @@ const Portfolio = () => {
                     <tr key={index} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {asset.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                        {asset.isin || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {asset.assetType || 'Security'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
                         {asset.quantity.toFixed(4)}

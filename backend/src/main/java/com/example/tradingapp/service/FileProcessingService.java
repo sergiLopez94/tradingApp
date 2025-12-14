@@ -172,15 +172,22 @@ public class FileProcessingService {
             String dateStr = parts[4].trim();
             String valueStr = parts[5].trim();
             
-            // Extract ISIN from name
+            // Extract ISIN and asset type from name
             String isin = "";
+            String assetType = "";
             String[] nameParts = nameStr.split("ISIN: ");
             String asset = nameParts[0].trim();
+            
             if (nameParts.length > 1) {
-                isin = nameParts[1].split(" ")[0];
+                String isinAndType = nameParts[1];
+                String[] isinParts = isinAndType.split(" ");
+                isin = isinParts[0].trim();
+                
+                // Detect asset type from asset name and description
+                assetType = detectAssetType(asset);
             }
             
-            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", ISIN: " + isin + ", Price: " + priceStr + ", Value: " + valueStr);
+            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
             
             try {
                 double quantity = parseGermanNumber(quantityStr);
@@ -193,6 +200,8 @@ public class FileProcessingService {
                 transaction.setTransactionId(isin);
                 transaction.setDate(statementDate);
                 transaction.setAsset(asset);
+                transaction.setIsin(isin);
+                transaction.setAssetType(assetType);
                 transaction.setQuantity(quantity);
                 transaction.setUnitPrice(unitPrice);
                 transaction.setTotalValue(totalValue);
@@ -203,6 +212,24 @@ public class FileProcessingService {
             }
         } else {
             System.out.println("Skipping row with insufficient columns: " + rowLine + " (parts: " + parts.length + ")");
+        }
+    }
+    
+    private String detectAssetType(String assetName) {
+        String name = assetName.toLowerCase();
+        
+        if (name.contains("etf")) {
+            return "ETF";
+        } else if (name.contains("aktie") || name.contains("stock") || name.contains("shares") || name.contains("inc.") || name.contains("ag") || name.contains("plc") || name.contains("adr")) {
+            return "Stock";
+        } else if (name.contains("gold")) {
+            return "Commodity";
+        } else if (name.contains("trust")) {
+            return "Trust";
+        } else if (name.contains("corp")) {
+            return "Corporation";
+        } else {
+            return "Security";
         }
     }
     
@@ -263,6 +290,8 @@ public class FileProcessingService {
                 transaction.setTransactionId(isin);
                 transaction.setDate(statementDate);
                 transaction.setAsset(asset);
+                transaction.setIsin(isin);
+                transaction.setAssetType(detectAssetType(asset));
                 transaction.setQuantity((int) Math.round(quantity));
                 transaction.setUnitPrice(unitPrice);
                 transaction.setTotalValue(totalValue);

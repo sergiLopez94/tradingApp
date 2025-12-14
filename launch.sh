@@ -2,6 +2,7 @@
 
 # Trading App Launch Script
 # Starts both backend (Spring Boot) and frontend (Vite React)
+# Automatically installs dependencies and compiles the project
 
 echo "🚀 Starting Trading App..."
 echo ""
@@ -27,6 +28,24 @@ cleanup() {
 
 # Set trap to cleanup on exit
 trap cleanup EXIT INT TERM
+
+# Setup Backend
+echo -e "${YELLOW}Setting up Backend (installing dependencies and compiling)...${NC}"
+cd "$SCRIPT_DIR/backend"
+if ! mvn clean install -q > /tmp/trading_backend_setup.log 2>&1; then
+    echo -e "${RED}✗ Backend setup failed. Check /tmp/trading_backend_setup.log${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Backend setup complete${NC}"
+
+# Setup Frontend
+echo -e "${YELLOW}Setting up Frontend (installing dependencies)...${NC}"
+cd "$SCRIPT_DIR/frontend"
+if ! npm install -q > /tmp/trading_frontend_setup.log 2>&1; then
+    echo -e "${RED}✗ Frontend setup failed. Check /tmp/trading_frontend_setup.log${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Frontend setup complete${NC}"
 
 # Start Backend
 echo -e "${YELLOW}Starting Backend (Spring Boot)...${NC}"

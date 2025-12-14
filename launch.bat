@@ -1,6 +1,7 @@
 @echo off
 REM Trading App Launch Script (Windows)
 REM Starts both backend (Spring Boot) and frontend (Vite React)
+REM Automatically installs dependencies and compiles the project
 
 echo.
 echo ========================================
@@ -11,6 +12,30 @@ echo.
 REM Get the directory where the script is located
 setlocal enabledelayedexpansion
 set SCRIPT_DIR=%~dp0
+
+REM Setup Backend
+echo Setting up Backend (installing dependencies and compiling)...
+cd /d "%SCRIPT_DIR%backend"
+call mvn clean install -q
+if errorlevel 1 (
+    echo ERROR: Backend setup failed. Check Maven logs above.
+    pause
+    exit /b 1
+)
+echo Backend setup complete.
+echo.
+
+REM Setup Frontend
+echo Setting up Frontend (installing dependencies)...
+cd /d "%SCRIPT_DIR%frontend"
+call npm install -q
+if errorlevel 1 (
+    echo ERROR: Frontend setup failed. Check npm logs above.
+    pause
+    exit /b 1
+)
+echo Frontend setup complete.
+echo.
 
 REM Start Backend
 echo Starting Backend (Spring Boot)...

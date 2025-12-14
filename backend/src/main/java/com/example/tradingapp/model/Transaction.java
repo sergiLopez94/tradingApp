@@ -13,6 +13,8 @@ public class Transaction {
     private String transactionId;
     private String date;
     private String asset;
+    private String isin;
+    private String assetType;
     private double quantity;
     private double unitPrice;
     private double totalValue;
@@ -80,5 +82,21 @@ public class Transaction {
 
     public void setTotalValue(double totalValue) {
         this.totalValue = totalValue;
+    }
+
+    public String getIsin() {
+        return isin;
+    }
+
+    public void setIsin(String isin) {
+        this.isin = isin;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(String assetType) {
+        this.assetType = assetType;
     }
 }
