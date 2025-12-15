@@ -14,6 +14,7 @@ public class Transaction {
     private String date;
     private String asset;
     private String isin;
+    private String ticker;
     private String assetType;
     private double quantity;
     private double unitPrice;
@@ -98,5 +99,13 @@ public class Transaction {
 
     public void setAssetType(String assetType) {
         this.assetType = assetType;
+    }
+
+    public String getTicker() {
+        return ticker;
+    }
+
+    public void setTicker(String ticker) {
+        this.ticker = ticker;
     }
 }

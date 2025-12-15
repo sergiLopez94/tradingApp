@@ -165,12 +165,13 @@ public class FileProcessingService {
     private void processTableRow(String rowLine, String depot, String statementDate) {
         System.out.println("Processing row: " + rowLine);
         String[] parts = rowLine.split("\\|");
-        if (parts.length >= 6) {
+        if (parts.length >= 7) {
             String quantityStr = parts[1].trim();
             String nameStr = parts[2].trim().replace("<br>", " ").replace("\n", " ");
-            String priceStr = parts[3].trim();
-            String dateStr = parts[4].trim();
-            String valueStr = parts[5].trim();
+            String tickerStr = parts[3].trim();
+            String priceStr = parts[4].trim();
+            String dateStr = parts[5].trim();
+            String valueStr = parts[6].trim();
             
             // Extract ISIN and asset type from name
             String isin = "";
@@ -187,7 +188,7 @@ public class FileProcessingService {
                 assetType = detectAssetType(asset);
             }
             
-            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
+            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", Ticker: " + tickerStr + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
             
             try {
                 double quantity = parseGermanNumber(quantityStr);
@@ -201,6 +202,7 @@ public class FileProcessingService {
                 transaction.setDate(statementDate);
                 transaction.setAsset(asset);
                 transaction.setIsin(isin);
+                transaction.setTicker(tickerStr);
                 transaction.setAssetType(assetType);
                 transaction.setQuantity(quantity);
                 transaction.setUnitPrice(unitPrice);
