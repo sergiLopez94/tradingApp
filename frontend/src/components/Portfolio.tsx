@@ -30,9 +30,9 @@ const Portfolio = () => {
     fetch(`http://localhost:8080/api/transactions/${clientId}`)
       .then(res => res.json())
       .then((transactions: Transaction[]) => {
-        const assetMap = new Map<string, { quantity: number; unitPrice: number; totalValue: number }>();
+        const assetMap = new Map<string, { quantity: number; unitPrice: number; totalValue: number; isin: string; assetType: string }>();
         transactions.forEach(tx => {
-          const existing = assetMap.get(tx.asset) || { quantity: 0, unitPrice: tx.unitPrice, totalValue: 0 };
+          const existing = assetMap.get(tx.asset) || { quantity: 0, unitPrice: tx.unitPrice, totalValue: 0, isin: tx.isin, assetType: tx.assetType };
           existing.quantity += tx.quantity;
           existing.totalValue += tx.totalValue;
           assetMap.set(tx.asset, existing);
