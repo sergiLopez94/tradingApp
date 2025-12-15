@@ -165,7 +165,58 @@ public class FileProcessingService {
     private void processTableRow(String rowLine, String depot, String statementDate) {
         System.out.println("Processing row: " + rowLine);
         String[] parts = rowLine.split("\\|");
-        if (parts.length >= 7) {
+        if (parts.length >= 8) {
+            // Integration test format: | Quantity | Asset | ISIN | Symbol | Type | Price | Value |
+            String quantityStr = parts[1].trim();
+            String nameStr = parts[2].trim().replace("<br>", " ").replace("\n", " ");
+            String isinStr = parts[3].trim();
+            String tickerStr = parts[4].trim();
+            String assetTypeStr = parts[5].trim();
+            String priceStr = parts[6].trim();
+            String valueStr = parts[7].trim();
+            
+            // Extract ISIN and asset from the parts
+            String isin = isinStr;
+            String asset = nameStr;
+            String assetType = detectAssetType(asset);
+            
+            // Handle legacy format with ISIN embedded in name (for backward compatibility)
+            if (isin.isEmpty() && nameStr.contains("ISIN: ")) {
+                String[] nameParts = nameStr.split("ISIN: ");
+                asset = nameParts[0].trim();
+                if (nameParts.length > 1) {
+                    String isinAndType = nameParts[1];
+                    String[] isinParts = isinAndType.split(" ");
+                    isin = isinParts[0].trim();
+                }
+            }
+            
+            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", Ticker: " + tickerStr + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
+            
+            try {
+                double quantity = parseGermanNumber(quantityStr);
+                double unitPrice = parseGermanNumber(priceStr);
+                double totalValue = parseGermanNumber(valueStr);
+                
+                Transaction transaction = new Transaction();
+                // Don't set ID - let JPA generate it automatically
+                transaction.setClientId(depot);
+                transaction.setTransactionId(isin);
+                transaction.setDate(statementDate);
+                transaction.setAsset(asset);
+                transaction.setIsin(isin);
+                transaction.setTicker(tickerStr);
+                transaction.setAssetType(assetType);
+                transaction.setQuantity(quantity);
+                transaction.setUnitPrice(unitPrice);
+                transaction.setTotalValue(totalValue);
+                transactionRepository.save(transaction);
+                System.out.println("Saved transaction: " + asset + " - " + quantity);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing table row: " + rowLine + " - Error: " + e.getMessage());
+            }
+        } else if (parts.length >= 7) {
+            // Legacy format: | Quantity | Asset with ISIN | Ticker | Price | Date | Value |
             String quantityStr = parts[1].trim();
             String nameStr = parts[2].trim().replace("<br>", " ").replace("\n", " ");
             String tickerStr = parts[3].trim();
@@ -188,7 +239,7 @@ public class FileProcessingService {
                 assetType = detectAssetType(asset);
             }
             
-            System.out.println("Quantity: " + quantityStr + ", Asset: " + asset + ", Ticker: " + tickerStr + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
+            System.out.println("Legacy format - Quantity: " + quantityStr + ", Asset: " + asset + ", Ticker: " + tickerStr + ", ISIN: " + isin + ", Type: " + assetType + ", Price: " + priceStr + ", Value: " + valueStr);
             
             try {
                 double quantity = parseGermanNumber(quantityStr);
@@ -196,7 +247,7 @@ public class FileProcessingService {
                 double totalValue = parseGermanNumber(valueStr);
                 
                 Transaction transaction = new Transaction();
-                transaction.setId(depot + "-" + isin);
+                // Don't set ID - let JPA generate it automatically
                 transaction.setClientId(depot);
                 transaction.setTransactionId(isin);
                 transaction.setDate(statementDate);
@@ -236,8 +287,34 @@ public class FileProcessingService {
     }
     
     private double parseGermanNumber(String numberStr) {
-        // Handle German number format: remove dots (thousand separators) and replace comma with dot
-        String cleaned = numberStr.replace(".", "").replace(",", ".");
+        // Smart number parser that handles both US and German formats
+        // German format: 1.234,56 (dot for thousands, comma for decimal)
+        // US format: 1,234.56 (comma for thousands, dot for decimal)
+        
+        String cleaned = numberStr.trim();
+        
+        // Count dots and commas to determine format
+        long dotCount = cleaned.chars().filter(ch -> ch == '.').count();
+        long commaCount = cleaned.chars().filter(ch -> ch == ',').count();
+        
+        if (commaCount > 0 && dotCount > 0) {
+            // Mixed: determine which is decimal separator
+            int lastDotPos = cleaned.lastIndexOf('.');
+            int lastCommaPos = cleaned.lastIndexOf(',');
+            
+            if (lastCommaPos > lastDotPos) {
+                // German format: 1.234,56
+                cleaned = cleaned.replace(".", "").replace(",", ".");
+            } else {
+                // US format: 1,234.56
+                cleaned = cleaned.replace(",", "");
+            }
+        } else if (commaCount > 0) {
+            // Only commas: German decimal format (123,45)
+            cleaned = cleaned.replace(",", ".");
+        }
+        // If only dots or no separators, treat as US format (already correct)
+        
         return Double.parseDouble(cleaned);
     }
     
@@ -287,7 +364,7 @@ public class FileProcessingService {
                 
                 // Save transaction
                 Transaction transaction = new Transaction();
-                transaction.setId(depot + "-" + isin);
+                // Don't set ID - let JPA generate it automatically
                 transaction.setClientId(depot);
                 transaction.setTransactionId(isin);
                 transaction.setDate(statementDate);

@@ -1,0 +1,19 @@
+{
+  "name": "trading-app-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Trading App",
+  "scripts": {
+    "test:e2e": "ts-node tests/e2e.spec.ts",
+    "test:e2e:headless": "ts-node tests/e2e.spec.ts --headless"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/selenium-webdriver": "^4.1.26",
+    "selenium-webdriver": "^4.26.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "comments": {
+    "selenium-manager": "selenium-webdriver 4.x includes Selenium Manager which automatically downloads the correct ChromeDriver version matching your installed Chrome browser. No manual chromedriver installation needed!"
+  }
+}

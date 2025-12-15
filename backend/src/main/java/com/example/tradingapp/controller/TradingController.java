@@ -32,17 +32,24 @@ public class TradingController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<java.util.Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             String depot = fileProcessingService.processFile(file);
-            return ResponseEntity.ok("File processed successfully for depot: " + depot);
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("depot", depot);
+            response.put("message", "File processed successfully for depot: " + depot);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error processing file: " + e.getMessage());
+            java.util.Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
 
     @GetMapping("/client/{id}")
-    public Client getClient(@PathVariable String id) {
-        return clientRepository.findById(id).orElse(null);
+    public ResponseEntity<Client> getClient(@PathVariable String id) {
+        return clientRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

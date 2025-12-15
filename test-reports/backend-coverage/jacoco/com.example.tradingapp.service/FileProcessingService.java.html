@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FileProcessingService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tradingapp</a> &gt; <a href="index.source.html" class="el_package">com.example.tradingapp.service</a> &gt; <span class="el_source">FileProcessingService.java</span></div><h1>FileProcessingService.java</h1><pre class="source lang-java linenums">package com.example.tradingapp.service;
+
+import com.example.tradingapp.data.ClientRepository;
+import com.example.tradingapp.data.TransactionRepository;
+import com.example.tradingapp.model.Client;
+import com.example.tradingapp.model.Transaction;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.jsoup.Jsoup;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+<span class="fc" id="L25">public class FileProcessingService {</span>
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+<span class="fc" id="L33">    private String lastProcessedDepot = &quot;1&quot;; // Default</span>
+
+    public String processFile(MultipartFile file) throws IOException {
+<span class="fc" id="L36">        String content = extractContent(file);</span>
+<span class="fc" id="L37">        parseAndSave(content);</span>
+<span class="fc" id="L38">        return lastProcessedDepot;</span>
+    }
+
+    private String extractContent(MultipartFile file) throws IOException {
+<span class="fc" id="L42">        String filename = file.getOriginalFilename();</span>
+<span class="pc bpc" id="L43" title="2 of 4 branches missed.">        if (filename != null &amp;&amp; filename.toLowerCase().endsWith(&quot;.pdf&quot;)) {</span>
+<span class="nc" id="L44">            RandomAccessReadBuffer buffer = new RandomAccessReadBuffer(file.getInputStream());</span>
+<span class="nc" id="L45">            PDDocument document = Loader.loadPDF(buffer);</span>
+<span class="nc" id="L46">            PDFTextStripper stripper = new PDFTextStripper();</span>
+<span class="nc" id="L47">            String text = stripper.getText(document);</span>
+<span class="nc" id="L48">            document.close();</span>
+<span class="nc" id="L49">            return text;</span>
+<span class="pc bpc" id="L50" title="2 of 4 branches missed.">        } else if (filename != null &amp;&amp; filename.toLowerCase().endsWith(&quot;.docx&quot;)) {</span>
+            // Assume Word document
+<span class="nc" id="L52">            XWPFDocument document = new XWPFDocument(file.getInputStream());</span>
+<span class="nc" id="L53">            XWPFWordExtractor extractor = new XWPFWordExtractor(document);</span>
+<span class="nc" id="L54">            String text = extractor.getText();</span>
+<span class="nc" id="L55">            document.close();</span>
+<span class="nc" id="L56">            return text;</span>
+<span class="pc bpc" id="L57" title="2 of 4 branches missed.">        } else if (filename != null &amp;&amp; filename.toLowerCase().endsWith(&quot;.html&quot;)) {</span>
+            // Assume HTML file
+<span class="nc" id="L59">            String html = new String(file.getInputStream().readAllBytes());</span>
+<span class="nc" id="L60">            return Jsoup.parse(html).text();</span>
+<span class="pc bpc" id="L61" title="1 of 4 branches missed.">        } else if (filename != null &amp;&amp; filename.toLowerCase().endsWith(&quot;.md&quot;)) {</span>
+            // Assume Markdown file
+<span class="fc" id="L63">            BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));</span>
+<span class="fc" id="L64">            StringBuilder content = new StringBuilder();</span>
+            String line;
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            while ((line = reader.readLine()) != null) {</span>
+<span class="fc" id="L67">                content.append(line).append(&quot;\n&quot;);</span>
+            }
+<span class="fc" id="L69">            return content.toString();</span>
+        } else {
+            // Assume text file
+<span class="fc" id="L72">            BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));</span>
+<span class="fc" id="L73">            StringBuilder content = new StringBuilder();</span>
+            String line;
+<span class="fc bfc" id="L75" title="All 2 branches covered.">            while ((line = reader.readLine()) != null) {</span>
+<span class="fc" id="L76">                content.append(line).append(&quot;\n&quot;);</span>
+            }
+<span class="fc" id="L78">            return content.toString();</span>
+        }
+    }
+
+    private void parseAndSave(String content) {
+<span class="fc" id="L83">        System.out.println(&quot;Extracted content: &quot; + content);</span>
+<span class="fc" id="L84">        String[] lines = content.split(&quot;\n&quot;);</span>
+        
+        // Extract depot and date
+<span class="fc" id="L87">        String depot = &quot;&quot;;</span>
+<span class="fc" id="L88">        String statementDate = &quot;&quot;;</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        for (String line : lines) {</span>
+<span class="fc" id="L90">            line = line.trim();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">            if (line.contains(&quot;**Depot:**&quot;)) {</span>
+<span class="fc" id="L92">                depot = line.replace(&quot;**Depot:**&quot;, &quot;&quot;).trim();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            } else if (line.contains(&quot;**Datum:**&quot;)) {</span>
+<span class="fc" id="L94">                statementDate = line.replace(&quot;**Datum:**&quot;, &quot;&quot;).trim();</span>
+            }
+        }
+        
+<span class="fc" id="L98">        System.out.println(&quot;Parsed depot: &quot; + depot + &quot;, date: &quot; + statementDate);</span>
+        
+        // Update or create client
+<span class="fc" id="L101">        Client client = clientRepository.findById(depot).orElse(new Client());</span>
+<span class="fc" id="L102">        client.setId(depot);</span>
+<span class="fc" id="L103">        client.setName(&quot;Client &quot; + depot);</span>
+<span class="fc" id="L104">        client.setEmail(&quot;client&quot; + depot + &quot;@example.com&quot;);</span>
+<span class="fc" id="L105">        client.setBirthDate(&quot;2000-01-01&quot;);</span>
+<span class="fc" id="L106">        client.setDepot(depot);</span>
+<span class="fc" id="L107">        clientRepository.save(client);</span>
+<span class="fc" id="L108">        lastProcessedDepot = depot;</span>
+<span class="fc" id="L109">        System.out.println(&quot;Saved/Updated client: &quot; + depot);</span>
+        
+        // Detect format and parse accordingly
+<span class="fc" id="L112">        boolean isTableFormat = false;</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (String line : lines) {</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">            if (line.contains(&quot;| STK. / Nominale |&quot;)) {</span>
+<span class="fc" id="L115">                isTableFormat = true;</span>
+<span class="fc" id="L116">                break;</span>
+            }
+        }
+        
+<span class="fc" id="L120">        System.out.println(&quot;Detected table format: &quot; + isTableFormat);</span>
+        
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (isTableFormat) {</span>
+<span class="fc" id="L123">            parseTableFormat(lines, depot, statementDate);</span>
+        } else {
+<span class="fc" id="L125">            parseLineFormat(lines, depot, statementDate);</span>
+        }
+<span class="fc" id="L127">    }    private void parseTableFormat(String[] lines, String depot, String statementDate) {</span>
+        // Clear old transactions
+<span class="fc" id="L129">        List&lt;Transaction&gt; oldTransactions = transactionRepository.findByClientId(depot);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        for (Transaction t : oldTransactions) {</span>
+<span class="fc" id="L131">            transactionRepository.delete(t);</span>
+<span class="fc" id="L132">        }</span>
+        
+        // Process the lines - handle concatenated rows with &quot;||&quot;
+<span class="fc" id="L135">        boolean inTable = false;</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        for (String line : lines) {</span>
+<span class="fc" id="L137">            line = line.trim();</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">            if (line.startsWith(&quot;| STK. / Nominale |&quot;)) {</span>
+<span class="fc" id="L139">                inTable = true;</span>
+<span class="fc" id="L140">                continue;</span>
+            }
+<span class="pc bpc" id="L142" title="2 of 8 branches missed.">            if (inTable &amp;&amp; line.startsWith(&quot;|&quot;) &amp;&amp; !line.startsWith(&quot;|---&quot;) &amp;&amp; !line.contains(&quot;STK. / Nominale&quot;)) {</span>
+                // If the line contains &quot;||&quot;, split into separate rows
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">                if (line.contains(&quot;||&quot;)) {</span>
+<span class="nc" id="L145">                    String[] subRows = line.split(&quot;\\|\\|&quot;);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">                    for (String subRow : subRows) {</span>
+<span class="nc" id="L147">                        String trimmed = subRow.trim();</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                        if (!trimmed.isEmpty()) {</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                            if (!trimmed.startsWith(&quot;|&quot;)) {</span>
+<span class="nc" id="L150">                                trimmed = &quot;|&quot; + trimmed;</span>
+                            }
+<span class="nc" id="L152">                            processTableRow(trimmed, depot, statementDate);</span>
+                        }
+                    }
+<span class="nc" id="L155">                } else {</span>
+<span class="fc" id="L156">                    processTableRow(line, depot, statementDate);</span>
+                }
+            }
+<span class="pc bpc" id="L159" title="1 of 4 branches missed.">            if (line.isEmpty() &amp;&amp; inTable) {</span>
+<span class="nc" id="L160">                inTable = false;</span>
+            }
+        }
+<span class="fc" id="L163">    }</span>
+    
+    private void processTableRow(String rowLine, String depot, String statementDate) {
+<span class="fc" id="L166">        System.out.println(&quot;Processing row: &quot; + rowLine);</span>
+<span class="fc" id="L167">        String[] parts = rowLine.split(&quot;\\|&quot;);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (parts.length &gt;= 8) {</span>
+            // Integration test format: | Quantity | Asset | ISIN | Symbol | Type | Price | Value |
+<span class="fc" id="L170">            String quantityStr = parts[1].trim();</span>
+<span class="fc" id="L171">            String nameStr = parts[2].trim().replace(&quot;&lt;br&gt;&quot;, &quot; &quot;).replace(&quot;\n&quot;, &quot; &quot;);</span>
+<span class="fc" id="L172">            String isinStr = parts[3].trim();</span>
+<span class="fc" id="L173">            String tickerStr = parts[4].trim();</span>
+<span class="fc" id="L174">            String assetTypeStr = parts[5].trim();</span>
+<span class="fc" id="L175">            String priceStr = parts[6].trim();</span>
+<span class="fc" id="L176">            String valueStr = parts[7].trim();</span>
+            
+            // Extract ISIN and asset from the parts
+<span class="fc" id="L179">            String isin = isinStr;</span>
+<span class="fc" id="L180">            String asset = nameStr;</span>
+<span class="fc" id="L181">            String assetType = detectAssetType(asset);</span>
+            
+            // Handle legacy format with ISIN embedded in name (for backward compatibility)
+<span class="pc bpc" id="L184" title="3 of 4 branches missed.">            if (isin.isEmpty() &amp;&amp; nameStr.contains(&quot;ISIN: &quot;)) {</span>
+<span class="nc" id="L185">                String[] nameParts = nameStr.split(&quot;ISIN: &quot;);</span>
+<span class="nc" id="L186">                asset = nameParts[0].trim();</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                if (nameParts.length &gt; 1) {</span>
+<span class="nc" id="L188">                    String isinAndType = nameParts[1];</span>
+<span class="nc" id="L189">                    String[] isinParts = isinAndType.split(&quot; &quot;);</span>
+<span class="nc" id="L190">                    isin = isinParts[0].trim();</span>
+                }
+            }
+            
+<span class="fc" id="L194">            System.out.println(&quot;Quantity: &quot; + quantityStr + &quot;, Asset: &quot; + asset + &quot;, Ticker: &quot; + tickerStr + &quot;, ISIN: &quot; + isin + &quot;, Type: &quot; + assetType + &quot;, Price: &quot; + priceStr + &quot;, Value: &quot; + valueStr);</span>
+            
+            try {
+<span class="fc" id="L197">                double quantity = parseGermanNumber(quantityStr);</span>
+<span class="fc" id="L198">                double unitPrice = parseGermanNumber(priceStr);</span>
+<span class="fc" id="L199">                double totalValue = parseGermanNumber(valueStr);</span>
+                
+<span class="fc" id="L201">                Transaction transaction = new Transaction();</span>
+                // Don't set ID - let JPA generate it automatically
+<span class="fc" id="L203">                transaction.setClientId(depot);</span>
+<span class="fc" id="L204">                transaction.setTransactionId(isin);</span>
+<span class="fc" id="L205">                transaction.setDate(statementDate);</span>
+<span class="fc" id="L206">                transaction.setAsset(asset);</span>
+<span class="fc" id="L207">                transaction.setIsin(isin);</span>
+<span class="fc" id="L208">                transaction.setTicker(tickerStr);</span>
+<span class="fc" id="L209">                transaction.setAssetType(assetType);</span>
+<span class="fc" id="L210">                transaction.setQuantity(quantity);</span>
+<span class="fc" id="L211">                transaction.setUnitPrice(unitPrice);</span>
+<span class="fc" id="L212">                transaction.setTotalValue(totalValue);</span>
+<span class="fc" id="L213">                transactionRepository.save(transaction);</span>
+<span class="fc" id="L214">                System.out.println(&quot;Saved transaction: &quot; + asset + &quot; - &quot; + quantity);</span>
+<span class="nc" id="L215">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L216">                System.err.println(&quot;Error parsing table row: &quot; + rowLine + &quot; - Error: &quot; + e.getMessage());</span>
+<span class="fc" id="L217">            }</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        } else if (parts.length &gt;= 7) {</span>
+            // Legacy format: | Quantity | Asset with ISIN | Ticker | Price | Date | Value |
+<span class="fc" id="L220">            String quantityStr = parts[1].trim();</span>
+<span class="fc" id="L221">            String nameStr = parts[2].trim().replace(&quot;&lt;br&gt;&quot;, &quot; &quot;).replace(&quot;\n&quot;, &quot; &quot;);</span>
+<span class="fc" id="L222">            String tickerStr = parts[3].trim();</span>
+<span class="fc" id="L223">            String priceStr = parts[4].trim();</span>
+<span class="fc" id="L224">            String dateStr = parts[5].trim();</span>
+<span class="fc" id="L225">            String valueStr = parts[6].trim();</span>
+            
+            // Extract ISIN and asset type from name
+<span class="fc" id="L228">            String isin = &quot;&quot;;</span>
+<span class="fc" id="L229">            String assetType = &quot;&quot;;</span>
+<span class="fc" id="L230">            String[] nameParts = nameStr.split(&quot;ISIN: &quot;);</span>
+<span class="fc" id="L231">            String asset = nameParts[0].trim();</span>
+            
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">            if (nameParts.length &gt; 1) {</span>
+<span class="fc" id="L234">                String isinAndType = nameParts[1];</span>
+<span class="fc" id="L235">                String[] isinParts = isinAndType.split(&quot; &quot;);</span>
+<span class="fc" id="L236">                isin = isinParts[0].trim();</span>
+                
+                // Detect asset type from asset name and description
+<span class="fc" id="L239">                assetType = detectAssetType(asset);</span>
+            }
+            
+<span class="fc" id="L242">            System.out.println(&quot;Legacy format - Quantity: &quot; + quantityStr + &quot;, Asset: &quot; + asset + &quot;, Ticker: &quot; + tickerStr + &quot;, ISIN: &quot; + isin + &quot;, Type: &quot; + assetType + &quot;, Price: &quot; + priceStr + &quot;, Value: &quot; + valueStr);</span>
+            
+            try {
+<span class="fc" id="L245">                double quantity = parseGermanNumber(quantityStr);</span>
+<span class="fc" id="L246">                double unitPrice = parseGermanNumber(priceStr);</span>
+<span class="fc" id="L247">                double totalValue = parseGermanNumber(valueStr);</span>
+                
+<span class="fc" id="L249">                Transaction transaction = new Transaction();</span>
+                // Don't set ID - let JPA generate it automatically
+<span class="fc" id="L251">                transaction.setClientId(depot);</span>
+<span class="fc" id="L252">                transaction.setTransactionId(isin);</span>
+<span class="fc" id="L253">                transaction.setDate(statementDate);</span>
+<span class="fc" id="L254">                transaction.setAsset(asset);</span>
+<span class="fc" id="L255">                transaction.setIsin(isin);</span>
+<span class="fc" id="L256">                transaction.setTicker(tickerStr);</span>
+<span class="fc" id="L257">                transaction.setAssetType(assetType);</span>
+<span class="fc" id="L258">                transaction.setQuantity(quantity);</span>
+<span class="fc" id="L259">                transaction.setUnitPrice(unitPrice);</span>
+<span class="fc" id="L260">                transaction.setTotalValue(totalValue);</span>
+<span class="fc" id="L261">                transactionRepository.save(transaction);</span>
+<span class="fc" id="L262">                System.out.println(&quot;Saved transaction: &quot; + asset + &quot; - &quot; + quantity);</span>
+<span class="nc" id="L263">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L264">                System.err.println(&quot;Error parsing table row: &quot; + rowLine + &quot; - Error: &quot; + e.getMessage());</span>
+<span class="fc" id="L265">            }</span>
+<span class="fc" id="L266">        } else {</span>
+<span class="fc" id="L267">            System.out.println(&quot;Skipping row with insufficient columns: &quot; + rowLine + &quot; (parts: &quot; + parts.length + &quot;)&quot;);</span>
+        }
+<span class="fc" id="L269">    }</span>
+    
+    private String detectAssetType(String assetName) {
+<span class="fc" id="L272">        String name = assetName.toLowerCase();</span>
+        
+<span class="fc bfc" id="L274" title="All 2 branches covered.">        if (name.contains(&quot;etf&quot;)) {</span>
+<span class="fc" id="L275">            return &quot;ETF&quot;;</span>
+<span class="pc bpc" id="L276" title="5 of 14 branches missed.">        } else if (name.contains(&quot;aktie&quot;) || name.contains(&quot;stock&quot;) || name.contains(&quot;shares&quot;) || name.contains(&quot;inc.&quot;) || name.contains(&quot;ag&quot;) || name.contains(&quot;plc&quot;) || name.contains(&quot;adr&quot;)) {</span>
+<span class="fc" id="L277">            return &quot;Stock&quot;;</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">        } else if (name.contains(&quot;gold&quot;)) {</span>
+<span class="nc" id="L279">            return &quot;Commodity&quot;;</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        } else if (name.contains(&quot;trust&quot;)) {</span>
+<span class="nc" id="L281">            return &quot;Trust&quot;;</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        } else if (name.contains(&quot;corp&quot;)) {</span>
+<span class="fc" id="L283">            return &quot;Corporation&quot;;</span>
+        } else {
+<span class="fc" id="L285">            return &quot;Security&quot;;</span>
+        }
+    }
+    
+    private double parseGermanNumber(String numberStr) {
+        // Smart number parser that handles both US and German formats
+        // German format: 1.234,56 (dot for thousands, comma for decimal)
+        // US format: 1,234.56 (comma for thousands, dot for decimal)
+        
+<span class="fc" id="L294">        String cleaned = numberStr.trim();</span>
+        
+        // Count dots and commas to determine format
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        long dotCount = cleaned.chars().filter(ch -&gt; ch == '.').count();</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">        long commaCount = cleaned.chars().filter(ch -&gt; ch == ',').count();</span>
+        
+<span class="fc bfc" id="L300" title="All 4 branches covered.">        if (commaCount &gt; 0 &amp;&amp; dotCount &gt; 0) {</span>
+            // Mixed: determine which is decimal separator
+<span class="fc" id="L302">            int lastDotPos = cleaned.lastIndexOf('.');</span>
+<span class="fc" id="L303">            int lastCommaPos = cleaned.lastIndexOf(',');</span>
+            
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">            if (lastCommaPos &gt; lastDotPos) {</span>
+                // German format: 1.234,56
+<span class="fc" id="L307">                cleaned = cleaned.replace(&quot;.&quot;, &quot;&quot;).replace(&quot;,&quot;, &quot;.&quot;);</span>
+            } else {
+                // US format: 1,234.56
+<span class="nc" id="L310">                cleaned = cleaned.replace(&quot;,&quot;, &quot;&quot;);</span>
+            }
+<span class="fc bfc" id="L312" title="All 2 branches covered.">        } else if (commaCount &gt; 0) {</span>
+            // Only commas: German decimal format (123,45)
+<span class="fc" id="L314">            cleaned = cleaned.replace(&quot;,&quot;, &quot;.&quot;);</span>
+        }
+        // If only dots or no separators, treat as US format (already correct)
+        
+<span class="fc" id="L318">        return Double.parseDouble(cleaned);</span>
+    }
+    
+    private void parseLineFormat(String[] lines, String depot, String statementDate) {
+        // Clear old transactions for this client
+<span class="fc" id="L323">        List&lt;Transaction&gt; oldTransactions = transactionRepository.findByClientId(depot);</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">        for (Transaction t : oldTransactions) {</span>
+<span class="nc" id="L325">            transactionRepository.delete(t);</span>
+<span class="nc" id="L326">        }</span>
+        
+        // Parse positions
+<span class="fc" id="L329">        int i = 0;</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">        while (i &lt; lines.length) {</span>
+<span class="fc" id="L331">            String line = lines[i].trim();</span>
+<span class="pc bpc" id="L332" title="1 of 2 branches missed.">            if (line.contains(&quot; Stk. &quot;)) {</span>
+                // Start of position
+<span class="nc" id="L334">                String[] parts = line.split(&quot; Stk. &quot;);</span>
+<span class="nc" id="L335">                double quantity = Double.parseDouble(parts[0].trim().replace(&quot;,&quot;, &quot;.&quot;));</span>
+<span class="nc" id="L336">                String asset = parts[1].trim();</span>
+                
+                // Skip to ISIN
+<span class="nc" id="L339">                i++;</span>
+<span class="nc bnc" id="L340" title="All 4 branches missed.">                while (i &lt; lines.length &amp;&amp; !lines[i].trim().startsWith(&quot;ISIN:&quot;)) {</span>
+<span class="nc" id="L341">                    i++;</span>
+                }
+<span class="nc" id="L343">                String isin = &quot;&quot;;</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                if (i &lt; lines.length) {</span>
+<span class="nc" id="L345">                    isin = lines[i].trim().substring(6);</span>
+<span class="nc" id="L346">                    i++;</span>
+                }
+                
+                // Skip Lagerland and Wertpapierrechnung if present
+<span class="nc bnc" id="L350" title="All 6 branches missed.">                while (i &lt; lines.length &amp;&amp; (lines[i].trim().startsWith(&quot;Lagerland:&quot;) || lines[i].trim().contains(&quot;Wertpapierrechnung&quot;))) {</span>
+<span class="nc" id="L351">                    i++;</span>
+                }
+                
+                // Price
+<span class="nc" id="L355">                double unitPrice = Double.parseDouble(lines[i].trim().replace(&quot;,&quot;, &quot;.&quot;));</span>
+<span class="nc" id="L356">                i++;</span>
+                
+                // Date (should be statement date)
+<span class="nc" id="L359">                i++;</span>
+                
+                // Total value
+<span class="nc" id="L362">                double totalValue = Double.parseDouble(lines[i].trim().replace(&quot;,&quot;, &quot;.&quot;));</span>
+<span class="nc" id="L363">                i++;</span>
+                
+                // Save transaction
+<span class="nc" id="L366">                Transaction transaction = new Transaction();</span>
+                // Don't set ID - let JPA generate it automatically
+<span class="nc" id="L368">                transaction.setClientId(depot);</span>
+<span class="nc" id="L369">                transaction.setTransactionId(isin);</span>
+<span class="nc" id="L370">                transaction.setDate(statementDate);</span>
+<span class="nc" id="L371">                transaction.setAsset(asset);</span>
+<span class="nc" id="L372">                transaction.setIsin(isin);</span>
+<span class="nc" id="L373">                transaction.setAssetType(detectAssetType(asset));</span>
+<span class="nc" id="L374">                transaction.setQuantity((int) Math.round(quantity));</span>
+<span class="nc" id="L375">                transaction.setUnitPrice(unitPrice);</span>
+<span class="nc" id="L376">                transaction.setTotalValue(totalValue);</span>
+<span class="nc" id="L377">                transactionRepository.save(transaction);</span>
+<span class="nc" id="L378">                System.out.println(&quot;Saved transaction: &quot; + asset + &quot; - &quot; + quantity);</span>
+<span class="nc" id="L379">            } else {</span>
+<span class="fc" id="L380">                i++;</span>
+            }
+<span class="fc" id="L382">        }</span>
+<span class="fc" id="L383">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -8,7 +8,8 @@ import jakarta.persistence.Table;
 @Table(name = "transactions")
 public class Transaction {
     @Id
-    private String id;
+    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    private Long id;
     private String clientId;
     private String transactionId;
     private String date;
@@ -21,11 +22,11 @@ public class Transaction {
     private double totalValue;
 
     // Getters and Setters
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

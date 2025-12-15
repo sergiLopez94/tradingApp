@@ -1,0 +1,1 @@
+remove all icons from the profile view and space the different elements in the header component

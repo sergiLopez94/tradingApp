@@ -1,0 +1,6 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+tradingapp,com.example.tradingapp.service,FileProcessingService,289,752,45,77,65,163,34,38,0,11
+tradingapp,com.example.tradingapp.controller,TradingController,15,42,0,0,4,10,0,4,0,4
+tradingapp,com.example.tradingapp,TradingAppApplication,5,3,0,0,2,1,1,1,1,1
+tradingapp,com.example.tradingapp.model,Transaction,4,76,0,0,2,32,1,22,1,22
+tradingapp,com.example.tradingapp.model,Client,0,38,0,0,0,16,0,11,0,11
